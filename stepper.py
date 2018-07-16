@@ -43,3 +43,9 @@ class Stepper:
             time.sleep(delay)
             self._write_pins(1, 0, 0, 1)
             time.sleep(delay)
+
+    def rotate(rotations, rpm):
+        """ Rotate the motor through `rotations` full revolutions at `rpm` revolutions per minute """
+        steps = rotations * self.steps_per_revolution
+        steps_per_second = rpm / 60 * self.steps_per_revolution
+        self.step(steps, steps_per_second)
