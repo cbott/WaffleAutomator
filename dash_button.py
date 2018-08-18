@@ -8,6 +8,7 @@ from scapy.all import ARP, sniff
 
 NETWORK_REQUEST = 1
 
+
 class AmazonDashButton:
     """
     Utility class for polling a network and triggering an action when an

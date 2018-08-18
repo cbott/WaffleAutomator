@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 # @Author: cbott
 # @Date:   2018-07-15 13:49:12
-
 """ Stepper motor driver for Raspberry Pi, Python3 """
+
 import time
 
 import RPi.GPIO as GPIO

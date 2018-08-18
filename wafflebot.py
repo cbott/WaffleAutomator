@@ -5,6 +5,7 @@ import threading
 
 from stepper import Stepper
 
+
 class WaffleHarwareManager:
     """ Interact with the real world in such as way as to cook a waffle """
     def __init__(self):
