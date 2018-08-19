@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # @Author: cbott
 # @Date:   2018-07-15 13:49:12
-""" Stepper motor driver for Raspberry Pi, Python3 """
+""" Stepper motor drivers for Raspberry Pi, Python3 """
 
 import time
 
@@ -113,7 +113,7 @@ class A4988:
         mode should be one of A4988.[STEP_FULL, STEP_HALF, STEP_QUARTER, STEP_EIGHTH, STEP_SIXTEENTH]
 
         If mode select pins were not configured, mode will be used for internal
-        calculation only with no hardware effecs
+        calculation only with no hardware effects
         """
         if mode == self.STEP_FULL:
             self._set_mode_pins(GPIO.LOW, GPIO.LOW, GPIO.LOW)
