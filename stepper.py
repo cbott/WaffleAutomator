@@ -85,7 +85,6 @@ class A4988:
         self.ms1 = ms1
         self.ms2 = ms2
         self.ms3 = ms3
-        self._mode = self.STEP_FULL  # defalt to full-stepping
 
         self._mode_controllable = False
         ms_pins = (self.ms1, self.ms2, self.ms3)
@@ -94,10 +93,12 @@ class A4988:
                 raise ValueError("Must provide either all or none of arguments ms1, ms2, ms3")
             self._mode_controllable = True
             for pin in ms_pins:
-                GPIO.setup(pin, OUTPUT)
+                GPIO.setup(pin, GPIO.OUT)
 
-        GPIO.setup(self.step_pin, OUTPUT)
-        GPIO.setup(self.dir_pin, OUTPUT)
+        self.set_step_mode(self.STEP_FULL)  # default to full-stepping
+
+        GPIO.setup(self.step_pin, GPIO.OUT)
+        GPIO.setup(self.dir_pin, GPIO.OUT)
 
     def _set_mode_pins(self, a, b, c):
         if not self._mode_controllable:
@@ -140,10 +141,10 @@ class A4988:
         else:
             GPIO.output(self.dir_pin, GPIO.HIGH)
 
-        for i in range(n):
+        for i in range(abs(n)):
             GPIO.output(self.step_pin, GPIO.HIGH)
             time.sleep(delay)
-            GPIO.output(self.step_pin, GPIO.HIGH)
+            GPIO.output(self.step_pin, GPIO.LOW)
             time.sleep(delay)
 
     def rotate(self, rotations, rpm):
@@ -152,3 +153,13 @@ class A4988:
         target_steps = rotations * microsteps_per_revolution
         steps_per_second = rpm / 60 * microsteps_per_revolution
         self.step(target_steps, steps_per_second)
+
+
+if __name__ == "__main__":
+    # Demo usage of included stepper classes
+    GPIO.setmode(GPIO.BOARD)
+    driver = A4988(step_pin=29, dir_pin=31, steps=200, ms1=33, ms2=35, ms3=37)
+    driver.set_step_mode(A4988.STEP_SIXTEENTH)
+    driver.rotate(1, 60)
+    driver.rotate(-1, 60)
+    GPIO.cleanup()
