@@ -64,3 +64,91 @@ class Stepper:
         steps = rotations * self.steps_per_revolution
         steps_per_second = rpm / 60 * self.steps_per_revolution
         self.step(steps, steps_per_second)
+
+
+class A4988:
+    """ Controller for the A4988 stepper motor driver """
+    STEP_FULL = 1
+    STEP_HALF = 2
+    STEP_QUARTER = 4
+    STEP_EIGHTH = 8
+    STEP_SIXTEENTH = 16
+
+    def __init__(self, step_pin: int, dir_pin: int, steps: int, ms1=None, ms2=None, ms3=None):
+        """
+        Initialize the A4988 driver
+        ms[1-3]: Microstep mode selection pins
+        """
+        self.step_pin = step_pin
+        self.dir_pin = dir_pin
+        self.steps = steps
+        self.ms1 = ms1
+        self.ms2 = ms2
+        self.ms3 = ms3
+        self._mode = self.STEP_FULL  # defalt to full-stepping
+
+        self._mode_controllable = False
+        ms_pins = (self.ms1, self.ms2, self.ms3)
+        if any(pin is not None for pin in ms_pins):
+            if not all(pin is not None for pin in ms_pins):
+                raise ValueError("Must provide either all or none of arguments ms1, ms2, ms3")
+            self._mode_controllable = True
+            for pin in ms_pins:
+                GPIO.setup(pin, OUTPUT)
+
+        GPIO.setup(self.step_pin, OUTPUT)
+        GPIO.setup(self.dir_pin, OUTPUT)
+
+    def _set_mode_pins(self, a, b, c):
+        if not self._mode_controllable:
+            # If harware is not configured for setting mode, skip writing to the pins
+            return
+        GPIO.output(self.ms1, a)
+        GPIO.output(self.ms2, b)
+        GPIO.output(self.ms3, c)
+
+    def set_step_mode(self, mode):
+        """
+        Set the step mode
+        mode should be one of A4988.[STEP_FULL, STEP_HALF, STEP_QUARTER, STEP_EIGHTH, STEP_SIXTEENTH]
+
+        If mode select pins were not configured, mode will be used for internal
+        calculation only with no hardware effecs
+        """
+        if mode == self.STEP_FULL:
+            self._set_mode_pins(GPIO.LOW, GPIO.LOW, GPIO.LOW)
+        elif mode == self.STEP_HALF:
+            self._set_mode_pins(GPIO.HIGH, GPIO.LOW, GPIO.LOW)
+        elif mode == self.STEP_QUARTER:
+            self._set_mode_pins(GPIO.LOW, GPIO.HIGH, GPIO.LOW)
+        elif mode == self.STEP_EIGHTH:
+            self._set_mode_pins(GPIO.HIGH, GPIO.HIGH, GPIO.LOW)
+        elif mode == self.STEP_SIXTEENTH:
+            self._set_mode_pins(GPIO.HIGH, GPIO.HIGH, GPIO.HIGH)
+        else:
+            raise ValueError("Invalid mode: {}".format(mode))
+        self._mode = mode
+
+    def step(self, n: int, sps: float):
+        """ Rotate the motor by `n` steps at a rate of `sps` steps per second """
+        if sps <= 0:
+            raise ValueError("Invalid parameter sps={}. Cannot have zero or negative steps per second".format(sps))
+        delay = 1 / (sps * 2)
+
+        if n < 0:
+            GPIO.output(self.dir_pin, GPIO.LOW)
+        else:
+            GPIO.output(self.dir_pin, GPIO.HIGH)
+
+        for i in range(n):
+            GPIO.output(self.step_pin, GPIO.HIGH)
+            time.sleep(delay)
+            GPIO.output(self.step_pin, GPIO.HIGH)
+            time.sleep(delay)
+
+    def rotate(self, rotations, rpm):
+        """ Rotate the motor through `rotations` full revolutions at `rpm` revolutions per minute """
+        microsteps_per_revolution = self.steps * self._mode
+        target_steps = rotations * microsteps_per_revolution
+        steps_per_second = rpm / 60 * microsteps_per_revolution
+        self.step(target_steps, steps_per_second)
