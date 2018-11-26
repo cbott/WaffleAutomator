@@ -61,7 +61,7 @@ class Stepper:
 
     def rotate(self, rotations, rpm):
         """ Rotate the motor through `rotations` full revolutions at `rpm` revolutions per minute """
-        steps = rotations * self.steps_per_revolution
+        steps = int(rotations * self.steps_per_revolution)
         steps_per_second = rpm / 60 * self.steps_per_revolution
         self.step(steps, steps_per_second)
 
@@ -147,10 +147,10 @@ class A4988:
             GPIO.output(self.step_pin, GPIO.LOW)
             time.sleep(delay)
 
-    def rotate(self, rotations, rpm):
+    def rotate(self, rotations: float, rpm: float):
         """ Rotate the motor through `rotations` full revolutions at `rpm` revolutions per minute """
         microsteps_per_revolution = self.steps * self._mode
-        target_steps = rotations * microsteps_per_revolution
+        target_steps = int(rotations * microsteps_per_revolution)
         steps_per_second = rpm / 60 * microsteps_per_revolution
         self.step(target_steps, steps_per_second)
 
@@ -158,7 +158,7 @@ class A4988:
 if __name__ == "__main__":
     # Demo usage of included stepper classes
     GPIO.setmode(GPIO.BOARD)
-    driver = A4988(step_pin=29, dir_pin=31, steps=200, ms1=33, ms2=35, ms3=37)
+    driver = A4988(step_pin=29, dir_pin=31, steps=200, ms1=36, ms2=38, ms3=40)
     driver.set_step_mode(A4988.STEP_SIXTEENTH)
     driver.rotate(1, 60)
     driver.rotate(-1, 60)
