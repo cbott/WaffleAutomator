@@ -38,22 +38,42 @@ class WaffleHarwareManager:
 
     def _run(self):
         """ Actually do the stuff. TODO: Probably rename """
-        while 1:
-            task = self.event_queue.get()  # Wait for WaffleMan to tell us what to do
-            # Make the waffle!
-            self.ps.enable()
-            print("Heating...")
-            time.sleep(HEATUP_TIME)  #TODO: feedback loop here
-            self.lm.up(LID_RAISE_TIME)
-            self.pump.rotate(5, 80)  # Pump batter into waffle iron
-            self.pump.rotate(-0.5, 200)  # Backrdive a bit to prevent spilling
-            self.lm.down(LID_LOWER_TIME)
-            print("Cooking...")
-            time.sleep(COOK_TIME)
-            self.lm.up(LID_RAISE_TIME)
+        try:
+            while 1:
+                task = self.event_queue.get()  # Wait for WaffleMan to tell us what to do
+                # Make the waffle!
+                self.ps.enable()
+                if not self.is_open():
+                    self.close_lid()
+                print("Heating...")
+                time.sleep(HEATUP_TIME)  #TODO: feedback loop here
+                self.open_lid()
+                self.pour_batter()
+                self.close_lid()
+                print("Cooking...")
+                time.sleep(COOK_TIME)
+                self.open_lid()
+                self.ps.disable()
+                self.event_queue.task_done()
+        finally:
             self.ps.disable()
-            self.event_queue.task_done()
         # TODO: Cleanup routine or something. How do threads work even?
+
+    def is_open(self):
+        # TODO: build hardware in to detect this
+        return True
+
+    def open_lid(self):
+        self.lm.up(LID_RAISE_TIME)
+
+    def close_lid(self):
+        self.lm.down(LID_LOWER_TIME)
+
+    def pour_batter(self):
+        if not self.is_open():
+            raise RuntimeError("Attempted to dispense batter into closed waffle iron!")
+        self.pump.rotate(5, 80)  # Pump batter into waffle iron
+        self.pump.rotate(-0.5, 200)  # Backrdive a bit to prevent spilling
 
     def __del__(self):
         GPIO.cleanup()
@@ -63,12 +83,19 @@ class WaffleHarwareManager:
 class PowerSupply:
     def __init__(self):
         GPIO.setup(PS_EN_PIN, GPIO.OUT)
+        self.enabled = False
+        self.disable()
 
     def enable(self):
+        self.enabled = True
         GPIO.output(PS_EN_PIN, GPIO.HIGH)
 
     def disable(self):
+        self.enabled = False
         GPIO.output(PS_EN_PIN, GPIO.LOW)
+
+    def is_enabled(self):
+        return self.enabled
 
 class LidMotor:
     def __init__(self):
